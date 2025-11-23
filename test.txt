@@ -1,0 +1,48 @@
+w = Window.partitionBy("lc").orderBy("sd")
+df = (df.withColumn("af", F.col("activeFlag").cast(BooleanType()))
+    .withColumn("nv", F.lead("sd").over(w)).where('1=1 and sd <= ed'))
+
+
+----------------------
+#df1 = (df.select("lc","ln","lns","af","case af when af then false else true end as af1","case when af = true then ed when af = false then cast('1900-01-01' as date) end as sd"))
+df1 = (df.select("lc","ln","lns","af"
+                 , F.when(df['af'] == True, False).otherwise(True).alias("af1")
+                 , "sd", "ed"
+                 , F.when(df['af'] == True, df.ed).otherwise('1900-01-01').alias("dt_")
+                 #, F.when(df['af'] == True, df.ed).otherwise('1900-01-01').alias("dt_")
+        )
+    .where("nv is null and ed <> cast('2079-06-06' as date)")
+)
+df1.orderBy(["lc","ln", "dt_"]).show()
+df2 = (df.select("lc","ln","lns","af"
+                 #, "af as af1"
+                 , df.af.alias("af1")
+                 , "sd", "ed"
+                 , F.when(( (df.af == False) & (df.nv.isNull()) & (df.ed != '2079-06-06') ), df.ed ).otherwise(df.sd).alias("dt_")
+                 #, F.when(df['af'] == True, df.ed).otherwise('1900-01-01').alias("dt_")
+            )
+        )
+df2.orderBy(["lc","ln", "dt_"]).show()
+
+
+df1 = (df.select("lc","ln","lns","af"
+                 , F.when(df['af'] == True, False).otherwise(True).alias("af1")
+                 , "sd", "ed"
+                 , F.when(df['af'] == True, df.ed).otherwise('1900-01-01').alias("dt_")
+                 #, F.when(df['af'] == True, df.ed).otherwise('1900-01-01').alias("dt_")
+        )
+    .where("nv is null and ed <> cast('2079-06-06' as date)")
+    .union(
+        (df.select("lc","ln","lns","af"
+                 #, "af as af1"
+                 , df.af.alias("af1")
+                 , "sd", "ed"
+                 , F.when(( (df.af == False) & (df.nv.isNull()) & (df.ed != '2079-06-06') ), df.ed ).otherwise(df.sd).alias("dt_")
+                 #, F.when(df['af'] == True, df.ed).otherwise('1900-01-01').alias("dt_")
+            )
+        )
+    )
+)
+
+#df.withColumn("nv", F.lead("sd").over(w)).where('1=1 and sd <= ed').show()
+df1.orderBy(["lc","ln", "dt_"]).show()
